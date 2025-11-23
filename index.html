@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>심플 비트 연산기</title>
+    <style>
+        :root {
+            --bg-color: #111827;
+            --card-bg: #1f2937;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --border: #374151;
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--text-main);
+        }
+
+        /* Mode Switcher */
+        .mode-switch {
+            display: flex;
+            background-color: var(--bg-color);
+            border-radius: 0.5rem;
+            padding: 4px;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border);
+        }
+
+        .mode-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            padding: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 0.3rem;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        /* Inputs Area */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .input-row {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        input[type="text"], select {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 1.1rem;
+            font-family: var(--font-mono);
+            width: 100%;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus, select:focus {
+            border-color: var(--accent);
+        }
+
+        select {
+            text-align: center;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Result Area - Vertical Calculation */
+        .result-area {
+            background-color: #0f131a;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            border: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .calc-grid {
+            display: grid;
+            grid-template-columns: auto auto auto; /* Op, Bin, Dec */
+            gap: 4px 15px;
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        /* Column Alignment */
+        .col-op {
+            text-align: right;
+            color: var(--accent);
+            font-weight: bold;
+            min-width: 20px;
+        }
+
+        .col-bin {
+            text-align: right;
+            color: var(--text-main);
+            letter-spacing: 1px;
+        }
+
+        .col-dec {
+            text-align: left;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .divider {
+            grid-column: 1 / 4;
+            border-bottom: 1px solid var(--text-muted);
+            margin: 5px 0;
+        }
+
+        .result-row .col-bin {
+            color: var(--accent);
+            font-weight: bold;
+        }
+        
+        .result-row .col-dec {
+            color: var(--accent);
+        }
+
+        /* Mobile Responsive Adjustments */
+        @media (max-width: 480px) {
+            .col-dec {
+               font-size: 0.8rem;
+            }
+            .container {
+                padding: 1.5rem;
+            }
+            input[type="text"] {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Bitwise Calc</h1>
+
+    <!-- Mode Switcher -->
+    <div class="mode-switch">
+        <button class="mode-btn active" id="btn-bin" onclick="setMode('BIN')">Binary (2진수)</button>
+        <button class="mode-btn" id="btn-dec" onclick="setMode('DEC')">Decimal (10진수)</button>
+    </div>
+
+    <!-- Input Section -->
+    <div class="input-group">
+        <div class="input-row">
+            <label for="inputA">값 A</label>
+            <input type="text" id="inputA" placeholder="0" autocomplete="off">
+        </div>
+
+        <div class="input-row">
+            <label for="operator">연산자</label>
+            <select id="operator">
+                <option value="&">AND (&amp;)</option>
+                <option value="|">OR (&#124;)</option>
+                <option value="^">XOR (^)</option>
+                <option value="~">NOT (~)</option>
+                <option value="<<">Left Shift (&lt;&lt;)</option>
+                <option value=">>">Right Shift (&gt;&gt;)</option>
+            </select>
+        </div>
+
+        <div class="input-row" id="row-inputB">
+            <label for="inputB">값 B</label>
+            <input type="text" id="inputB" placeholder="0" autocomplete="off">
+        </div>
+    </div>
+
+    <!-- Result Section -->
+    <div class="result-area">
+        <div class="calc-grid" id="calc-output">
+            <!-- Javascript will inject content here -->
+            <div style="grid-column: 1/4; text-align: center; color: #666;">
+                값을 입력하여 계산을 시작하세요
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // State
+    let currentMode = 'BIN'; // 'BIN' or 'DEC'
+
+    // Elements
+    const inputA = document.getElementById('inputA');
+    const inputB = document.getElementById('inputB');
+    const operator = document.getElementById('operator');
+    const rowInputB = document.getElementById('row-inputB');
+    const outputDiv = document.getElementById('calc-output');
+    const btnBin = document.getElementById('btn-bin');
+    const btnDec = document.getElementById('btn-dec');
+
+    // 초기화 및 이벤트 리스너 등록
+    function init() {
+        inputA.addEventListener('input', handleInput);
+        inputB.addEventListener('input', handleInput);
+        operator.addEventListener('change', () => {
+            handleOperatorChange();
+            calculate();
+        });
+        handleOperatorChange(); // 초기 상태 설정
+    }
+
+    // 입력 유효성 검사 및 데이터 정제
+    function handleInput(e) {
+        const el = e.target;
+        let val = el.value;
+
+        if (currentMode === 'BIN') {
+            // 0과 1만 허용
+            el.value = val.replace(/[^01]/g, '');
+        } else {
+            // 0-9만 허용
+            el.value = val.replace(/[^0-9]/g, '');
+        }
+        calculate();
+    }
+
+    // 연산자 변경 시 UI 처리
+    function handleOperatorChange() {
+        const op = operator.value;
+        if (op === '~') {
+            inputB.disabled = true;
+            rowInputB.style.opacity = '0.3';
+            inputB.value = ''; 
+        } else {
+            inputB.disabled = false;
+            rowInputB.style.opacity = '1';
+        }
+    }
+
+    // 모드 전환
+    function setMode(mode) {
+        if (currentMode === mode) return;
+
+        // 값 변환 로직
+        convertValue(inputA, currentMode, mode);
+        convertValue(inputB, currentMode, mode);
+
+        currentMode = mode;
+
+        // UI 업데이트
+        if (mode === 'BIN') {
+            btnBin.classList.add('active');
+            btnDec.classList.remove('active');
+            inputA.placeholder = "0 또는 1";
+            inputB.placeholder = "0 또는 1";
+        } else {
+            btnDec.classList.add('active');
+            btnBin.classList.remove('active');
+            inputA.placeholder = "0-9";
+            inputB.placeholder = "0-9";
+        }
+        
+        // 재계산
+        calculate();
+    }
+
+    function convertValue(input, fromMode, toMode) {
+        if (!input.value) return;
+        
+        let num = 0;
+        if (fromMode === 'BIN') {
+            num = parseInt(input.value, 2);
+        } else {
+            num = parseInt(input.value, 10);
+        }
+
+        if (isNaN(num)) {
+            input.value = "";
+            return;
+        }
+
+        if (toMode === 'BIN') {
+            input.value = num.toString(2);
+        } else {
+            input.value = num.toString(10);
+        }
+    }
+
+    // 핵심 계산 및 렌더링 로직
+    function calculate() {
+        const valAStr = inputA.value;
+        const valBStr = inputB.value;
+        const op = operator.value;
+
+        if (!valAStr && (!valBStr && op !== '~')) {
+            outputDiv.innerHTML = '<div style="grid-column: 1/4; text-align: center; color: #666;">값을 입력하세요</div>';
+            return;
+        }
+
+        // 진법에 따라 숫자 파싱
+        const radix = currentMode === 'BIN' ? 2 : 10;
+        const numA = parseInt(valAStr || '0', radix);
+        const numB = parseInt(valBStr || '0', radix);
+
+        let result = 0;
+
+        // 연산 수행
+        switch (op) {
+            case '&': result = numA & numB; break;
+            case '|': result = numA | numB; break;
+            case '^': result = numA ^ numB; break;
+            case '~': result = ~numA; break;
+            case '<<': result = numA << numB; break;
+            case '>>': result = numA >> numB; break;
+        }
+
+        // 렌더링을 위한 데이터 준비
+        // JS 비트 연산은 32비트 정수로 처리됨. 음수 표현(2의 보수)을 위해 >>> 0 사용 가능하나, 
+        // 여기서는 직관적인 출력을 위해 필요한 길이만큼만 자르거나 원본을 유지합니다.
+        // 다만 계산 결과가 음수일 경우(NOT 등) 32비트 전체를 보여주면 너무 길므로,
+        // 입력값 중 가장 긴 비트 길이 + 여유분을 기준으로 표시합니다.
+
+        const binA = numA.toString(2);
+        const binB = numB.toString(2);
+        
+        // 결과값 2진수 처리 (음수 처리 포함)
+        // 음수일 경우 32비트 2의 보수 표현에서 앞의 1들을 적절히 잘라내기 위해 로직 추가
+        let binRes = (result >>> 0).toString(2); 
+
+        // 자리수 맞춤 (패딩) 계산
+        let maxLen = Math.max(binA.length, binB.length, binRes.length);
+        if (op === '~') maxLen = Math.max(binA.length, binRes.length);
+        
+        // NOT 연산이나 음수가 나왔을 때 너무 길어지지 않도록 조정 (약간의 편의성)
+        // 하지만 정확한 표현을 위해 32비트 전체가 나올 수도 있음. 
+        // 여기서는 시각적 정렬을 위해 UI상에서 우측 정렬을 이용하므로 0 패딩은 필수는 아님.
+        // 하지만 "세로셈" 느낌을 위해 0을 채웁니다.
+
+        // 렌더링 HTML 생성
+        let html = '';
+
+        // Row A
+        html += createRow('', numA);
+
+        // Row Operator & B
+        if (op !== '~') {
+            html += createRow(op, numB);
+        } else {
+            // NOT 연산은 B를 표시하지 않음, 하지만 A 줄에 ~를 붙일지 별도 처리할지
+            // 세로셈 표준: 
+            //    1010
+            // NOT
+            // -------
+            // ...
+            // 여기서는 디자인 상 A 위에 연산자를 두거나, 그냥 결과만 보여줍니다.
+            // 편의상 두번째 줄에 Op만 표시
+            html += `<div class="col-op">${op}</div><div class="col-bin"></div><div class="col-dec"></div>`;
+        }
+
+        // Divider
+        html += `<div class="divider"></div>`;
+
+        // Result
+        html += createRow('=', result, true);
+
+        outputDiv.innerHTML = html;
+    }
+
+    function createRow(opSymbol, number, isResult = false) {
+        // 32비트 부호있는 정수 처리
+        let binStr = (number >>> 0).toString(2);
+        
+        // 가독성을 위해 4자리마다 끊어주기 (선택사항이나 비트연산에 유용함)
+        // 여기서는 단순 출력을 위해 생략하거나 CSS letter-spacing 활용
+        
+        const decStr = isResult ? `= ${number}` : `(${number})`;
+        const rowClass = isResult ? 'result-row' : '';
+
+        return `
+            <div class="col-op ${rowClass}">${opSymbol}</div>
+            <div class="col-bin ${rowClass}">${binStr}</div>
+            <div class="col-dec ${rowClass}">${decStr}</div>
+        `;
+    }
+
+    init();
+
+</script>
+
+</body>
+</html>
