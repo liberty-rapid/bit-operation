@@ -39,7 +39,7 @@
             border-radius: 1rem;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
             width: 100%;
-            max-width: 540px; /* 조금 더 넓힘 */
+            max-width: 540px;
         }
 
         h1 {
@@ -128,7 +128,7 @@
         select {
             font-weight: bold;
             cursor: pointer;
-            appearance: none; /* 네이티브 UI 제거 */
+            appearance: none;
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
             background-repeat: no-repeat;
             background-position: right 1rem center;
@@ -168,7 +168,7 @@
         .col-bin {
             text-align: right;
             color: var(--text-main);
-            letter-spacing: 2px; /* 비트 간격 넓힘 */
+            letter-spacing: 2px;
             white-space: pre;
         }
 
@@ -196,7 +196,6 @@
             color: var(--accent);
         }
 
-        /* Mobile Adjustments */
         @media (max-width: 480px) {
             .container { padding: 1.2rem; }
             .col-bin { font-size: 0.85rem; letter-spacing: 0.5px; }
@@ -210,22 +209,20 @@
 <div class="container">
     <h1>Bitwise Calc Pro</h1>
 
-    <!-- Mode Switcher -->
     <div class="mode-switch">
         <button class="mode-btn active" id="btn-bin" onclick="setMode('BIN')">Binary (2진수)</button>
         <button class="mode-btn" id="btn-dec" onclick="setMode('DEC')">Decimal (10진수)</button>
     </div>
 
-    <!-- Input Section -->
     <div class="input-group">
-        <!-- Byte Size Selector & Operator Row -->
         <div class="control-row">
             <div class="control-item input-row">
                 <label for="byteSize">데이터 크기</label>
                 <select id="byteSize">
-                    <option value="8">1 Byte (8-bit)</option>
+                    <!-- 기본값 1 Byte로 설정 (selected) -->
+                    <option value="8" selected>1 Byte (8-bit)</option>
                     <option value="16">2 Bytes (16-bit)</option>
-                    <option value="32" selected>4 Bytes (32-bit)</option>
+                    <option value="32">4 Bytes (32-bit)</option>
                     <option value="64">8 Bytes (64-bit)</option>
                 </select>
             </div>
@@ -253,7 +250,6 @@
         </div>
     </div>
 
-    <!-- Result Section -->
     <div class="result-area">
         <div class="calc-grid" id="calc-output">
             <div style="grid-column: 1/4; text-align: center; color: #666;">
@@ -264,14 +260,8 @@
 </div>
 
 <script>
-    /* 
-       순수 JS 구현 (BigInt 사용으로 64비트 완벽 지원)
-       외부 라이브러리 없음
-    */
-
     let currentMode = 'BIN'; 
     
-    // DOM Elements
     const inputA = document.getElementById('inputA');
     const inputB = document.getElementById('inputB');
     const operator = document.getElementById('operator');
@@ -290,12 +280,11 @@
         });
         byteSize.addEventListener('change', calculate);
         
-        handleOperatorChange(); // Init UI state
+        handleOperatorChange(); 
     }
 
     function handleInput(e) {
         const el = e.target;
-        // 입력 제한
         if (currentMode === 'BIN') {
             el.value = el.value.replace(/[^01]/g, '');
         } else {
@@ -319,13 +308,11 @@
     function setMode(mode) {
         if (currentMode === mode) return;
         
-        // 값 변환 시도
         convertValue(inputA, currentMode, mode);
         convertValue(inputB, currentMode, mode);
 
         currentMode = mode;
 
-        // 스타일 및 Placeholder 변경
         if (mode === 'BIN') {
             btnBin.classList.add('active');
             btnDec.classList.remove('active');
@@ -343,7 +330,6 @@
     function convertValue(el, from, to) {
         if (!el.value) return;
         try {
-            // BigInt로 파싱하여 변환
             let val;
             if (from === 'BIN') val = BigInt(`0b${el.value}`);
             else val = BigInt(el.value);
@@ -358,10 +344,8 @@
     function calculate() {
         const op = operator.value;
         const bits = parseInt(byteSize.value);
-        
-        // 마스크 생성 (예: 8bit -> 11111111)
-        // BigInt는 shift 연산시 BigInt끼리만 가능
         const bitsBI = BigInt(bits);
+        // 마스크: 해당 비트 수만큼 1로 채움 (예: 8bit -> 255)
         const mask = (1n << bitsBI) - 1n;
 
         let valA = inputA.value;
@@ -373,43 +357,32 @@
         }
 
         try {
-            // 1. 입력값 파싱 (BigInt 사용)
             let bigA = 0n, bigB = 0n;
 
             if (valA) bigA = currentMode === 'BIN' ? BigInt(`0b${valA}`) : BigInt(valA);
             if (valB) bigB = currentMode === 'BIN' ? BigInt(`0b${valB}`) : BigInt(valB);
 
-            // 2. 입력값 마스킹 (선택한 바이트 크기를 넘어가면 자름 effectively overflow)
-            // 이는 사용자에게 해당 비트 환경에서의 동작을 보여주기 위함입니다.
-            // 다만 입력 필드의 값 자체를 바꾸진 않고 계산/출력시에만 적용합니다.
+            // 입력값 마스킹 (선택된 데이터 크기 초과분 절삭)
             const maskedA = bigA & mask;
             const maskedB = bigB & mask;
 
             let result = 0n;
 
-            // 3. 연산 수행
             switch (op) {
                 case '&': result = maskedA & maskedB; break;
                 case '|': result = maskedA | maskedB; break;
                 case '^': result = maskedA ^ maskedB; break;
                 case '~': result = ~maskedA; break;
-                case '<<': 
-                    // shift amount는 마스킹 하지 않고 그대로 쓰거나, 
-                    // JS 스펙상 low bits만 쓰지만 여기선 그대로 둡니다.
-                    result = maskedA << maskedB; 
-                    break;
-                case '>>': 
-                    result = maskedA >> maskedB; 
-                    break;
+                case '<<': result = maskedA << maskedB; break;
+                case '>>': result = maskedA >> maskedB; break;
             }
 
-            // 4. 결과 마스킹 (오버플로우 처리 및 NOT 연산시 앞쪽 1 제거)
+            // 결과값 마스킹
             const finalResult = result & mask;
 
             render(op, maskedA, maskedB, finalResult, bits);
 
         } catch (e) {
-            // 파싱 중 뭔가 잘못 입력된 경우 (아직 입력 중일 때 등)
             // console.error(e);
         }
     }
@@ -417,11 +390,8 @@
     function render(op, a, b, res, bits) {
         let html = '';
 
-        // NOT 연산은 단항 연산
         if (op === '~') {
-            // A 출력
             html += createRow('', a, bits);
-            // 연산자 표시
             html += `<div class="col-op">${op}</div><div class="col-bin"></div><div class="col-dec"></div>`;
         } else {
             html += createRow('', a, bits);
@@ -435,17 +405,14 @@
     }
 
     function createRow(opSymbol, val, bits, isResult = false) {
-        // 2진수 변환 및 패딩 (0 채우기)
         let binStr = val.toString(2);
         
-        // 비트 수만큼 0 채우기 (padStart)
-        // 결과값이 bits보다 길 수 없음 (masking 했으므로)
+        // 0 패딩 (앞자리 채우기)
         if (binStr.length < bits) {
             binStr = binStr.padStart(bits, '0');
         }
 
-        // 가독성을 위해 4자리마다 띄어쓰기 추가 (선택사항)
-        // 정규식: 뒤에서부터 4자리마다 공백 삽입
+        // 4비트 단위로 끊어서 보여주기
         const formattedBin = binStr.replace(/(?=(?:.{4})+$)/g, ' ');
 
         const decStr = isResult ? `= ${val.toString(10)}` : `(${val.toString(10)})`;
